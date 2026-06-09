@@ -101,7 +101,23 @@
       if (e.key === "Enter") {
         sendMessage();
       }
+   
+async function loadHistory() {
+  try {
+    const res = await fetch("/.netlify/functions/bible-chat", {
+      method: "GET"
     });
+    const data = await res.json();
+    if (data.history) {
+      data.history.forEach(msg => addMessageToChat(msg.role, msg.text));
+    }
+  } catch (err) {
+    console.error("Failed to load history", err);
+  }
+}
+
+  window.onload = loadHistory;
+});
   </script>
 </body>
 </html>
