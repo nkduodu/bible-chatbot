@@ -1,65 +1,35 @@
-exports.handler = async () => {
-  return {
-    statusCode: 200,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ answer: "Test response from bible-chat" })
-  };
-};
-
-
+// netlify/functions/bible-chat.js
 const Groq = require("groq-sdk");
 
-exports.handler = async (event, context) => {
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+exports.handler = async (event) => {
   try {
+    // Parse incoming request body
     const body = JSON.parse(event.body || "{}");
-    const { userId, groupId, question, loadHistory } = body;
+    const userMessage = body.message || "Hello";
 
-    global.chatHistory = global.chatHistory || {};
-    const key = `${userId}-${groupId}`;
-    global.chatHistory[key] = global.chatHistory[key] || [];
-
-    if (loadHistory) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ history: global.chatHistory[key] })
-      };
-    }
-
-    global.chatHistory[key].push({ role: "user", text: question });
-
-    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-    const completion = await client.chat.completions.create({
+    // Call Groq API
+    const response = await client.chat.completions.create({
       model: "llama3-8b-8192",
-      messages: [
-        { role: "system", content: "You are a Bible study assistant." },
-        { role: "user", content: question }
-      ]
+      messages: [{ role: "user", content: userMessage }],
     });
 
-    const answer = completion.choices[0].message.content;
+    // Extract answer
+    const answer = response.choices[0]?.message?.content || "No answer";
 
-    global.chatHistory[key].push({ role: "assistant", text: answer });
-
+    // Return JSON response
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        answer,
-        songs: [
-          {
-            title: "Amazing Grace",
-            artist: "John Newton",
-            youtube: "https://youtube.com",
-            spotify: "https://spotify.com"
-          }
-        ]
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ history: [answer] }),
     };
-
-  } catch (err) {
+  } catch (error) {
+    console.error("Groq error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ history: ["Error: Groq not responding"] }),
     };
   }
 };
