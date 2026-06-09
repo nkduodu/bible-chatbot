@@ -1,3 +1,12 @@
+exports.handler = async () => {
+  return {
+    statusCode: 200,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answer: "Test response from bible-chat" })
+  };
+};
+
+
 const Groq = require("groq-sdk");
 
 exports.handler = async (event, context) => {
