@@ -2,9 +2,6 @@ const messagesEl = document.getElementById("messages");
 const inputEl = document.getElementById("input");
 const sendBtn = document.getElementById("sendBtn");
 
-const userId = "user-001";
-const groupId = "group-001";
-
 function addMessage(text, type) {
   const div = document.createElement("div");
   div.className = "bubble " + type;
