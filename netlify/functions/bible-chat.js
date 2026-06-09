@@ -46,4 +46,37 @@ exports.handler = async (event) => {
       body: JSON.stringify({ history: ["Error: Groq not responding"] }),
     };
   }
+
+import { getStore } from "@netlify/blobs";
+
+export default async (req, res) => {
+  const store = getStore("chat-history"); // create or connect to a blob store
+  const body = JSON.parse(req.body);
+  const message = body.message;
+
+  // Save user message
+  await store.setItem(Date.now().toString(), JSON.stringify({
+    role: "user",
+    text: message
+  }));
+
+  // Call Groq (your existing logic)
+  const reply = await getGroqResponse(message);
+
+  // Save assistant reply
+  await store.setItem(Date.now().toString(), JSON.stringify({
+    role: "assistant",
+    text: reply
+  }));
+
+  // Retrieve full history
+  const keys = await store.list();
+  const history = [];
+  for (const key of keys) {
+    const item = await store.get(key);
+    history.push(JSON.parse(item));
+  }
+
+  res.json({ history });
 };
+
