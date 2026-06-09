@@ -1,92 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Bible Chat</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    #chat-window {
-      border: 1px solid #ccc;
-      padding: 10px;
-      height: 400px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      background: #f9f9f9;
-    }
-    .user {
-      text-align: right;
-      color: blue;
-      margin: 5px;
-    }
-    .assistant {
-      text-align: left;
-      color: green;
-      margin: 5px;
-    }
-    #chat-input {
-      width: 70%;
-      padding: 8px;
-    }
-    #send-btn {
-      padding: 8px 12px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Bubble Chat</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  #chat-window {
+    border: 1px solid #ccc;
+    padding: 10px;
+    height: 400px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    background: #f9f9f9;
+  }
+  .user {
+    text-align: right;
+    color: blue;
+    margin: 5px;
+  }
+  .assistant {
+    text-align: left;
+    color: green;
+    margin: 5px;
+  }
+  #chat-input {
+    width: 70%;
+    padding: 8px;
+  }
+  #send-btn {
+    padding: 8px 12px;
+  }
+</style>
 </head>
 <body>
-  <h1>Bible Chat</h1>
-  <div id="chat-window"></div>
-  <input id="chat-input" type="text" placeholder="Type your question..." />
-  <button id="send-btn">Send</button>
+<h1>Bubble Chat</h1>
+<div id="chat-window"></div>
+<input id="chat-input" type="text" placeholder="Type your question..." />
+<button id="send-btn">Send</button>
 
-  <script>
-    async function sendMessage() {
-      const userInput = document.getElementById("chat-input").value;
-      if (!userInput.trim()) return;
+<script>
+async function sendMessage() {
+  const userInput = document.getElementById("chat-input").value;
+  if (!userInput.trim()) return;
 
-      // Add user message to chat window
-      addMessageToChat("user", userInput);
+  // Add user message to chat window
+  addMessageToChat("user", userInput);
 
-      try {
-        const res = await fetch("/.netlify/functions/bible-chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: userInput }),
-        });
-
-        const data = await res.json();
-
-        // ✅ Use the first item in history
-        const reply = data.history && data.history[0] ? data.history[0] : "No response received.";
-        addMessageToChat("assistant", reply);
-      } catch (err) {
-        console.error(err);
-        addMessageToChat("assistant", "Error: Unable to fetch response.");
-      }
-
-      document.getElementById("chat-input").value = "";
-    }
-
-    function addMessageToChat(role, text) {
-      const chatWindow = document.getElementById("chat-window");
-      const messageDiv = document.createElement("div");
-      messageDiv.className = role;
-      messageDiv.textContent = text;
-      chatWindow.appendChild(messageDiv);
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    // Attach event listener
-    document.getElementById("send-btn").addEventListener("click", sendMessage);
-
-    // Allow pressing Enter to send
-    document.getElementById("chat-input").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        sendMessage();
-      }
+  try {
+    const res = await fetch("/.netlify/functions/bubble-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userInput }),
     });
-  </script>
+
+    const data = await res.json();
+
+    // Use latest or first item in history
+    const reply = data.history && data.history[0] ? data.history[0] : "No response received.";
+    addMessageToChat("assistant", reply);
+  } catch (err) {
+    console.error(err);
+    addMessageToChat("assistant", "Error: Unable to fetch response.");
+  }
+
+  document.getElementById("chat-input").value = "";
+}
+
+function addMessageToChat(role, text) {
+  const chatWindow = document.getElementById("chat-window");
+  const messageDiv = document.createElement("div");
+  messageDiv.className = role;
+  messageDiv.textContent = text;
+  chatWindow.appendChild(messageDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Attach event listener
+document.getElementById("send-btn").addEventListener("click", sendMessage);
+
+// Allow pressing Enter to send
+document.getElementById("chat-input").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    sendMessage();
+  }
+});
+</script>
 </body>
 </html>
