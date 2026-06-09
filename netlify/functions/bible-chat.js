@@ -16,9 +16,9 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || "{}");
     const userMessage = body.message || "Hello";
 
-    // ✅ Updated to a supported model
+    // ✅ Updated to a current supported model
     const response = await client.chat.completions.create({
-      model: "llama3-70b-8192",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: userMessage }],
     });
 
