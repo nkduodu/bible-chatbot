@@ -27,7 +27,8 @@ async function sendToBackend(question) {
   try {
     addMessage(question, "user");
 
-    const res = await fetch("/.netlify/functions/bible-chat", {
+    const res = await fetch("https://myshepherd.netlify.app/.netlify/functions/bible-chat", {
+
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, groupId, question })
