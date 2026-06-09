@@ -1,0 +1,7 @@
+{
+  "name": "bible-chat",
+  "version": "1.0.0",
+  "dependencies": {
+    "groq-sdk": "latest"
+  }
+}
