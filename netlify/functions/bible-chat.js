@@ -1,6 +1,7 @@
 // netlify/functions/bible-chat.js
 const Groq = require("groq-sdk");
 
+// Initialize Groq client with your API key from Netlify environment variables
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 exports.handler = async (event) => {
@@ -15,8 +16,8 @@ exports.handler = async (event) => {
       messages: [{ role: "user", content: userMessage }],
     });
 
-    // Extract answer
-    const answer = response.choices[0]?.message?.content || "No answer";
+    // Extract answer safely
+    const answer = response.choices?.[0]?.message?.content || "No answer received";
 
     // Return JSON response
     return {
@@ -25,7 +26,10 @@ exports.handler = async (event) => {
       body: JSON.stringify({ history: [answer] }),
     };
   } catch (error) {
-    console.error("Groq error:", error);
+    // Log error for Netlify function logs
+    console.error("Bible-chat error:", error);
+
+    // Return error response to frontend
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
