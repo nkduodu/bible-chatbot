@@ -22,9 +22,12 @@ exports.handler = async (event) => {
         {
           role: "system",
           content:
-            "You are a helpful Bible study assistant. Always answer with scripture references and clear explanations.",
+            "You are a Bible study assistant. Always answer with scripture references and clear explanations.",
         },
-        { role: "user", content: userMessage },
+        {
+          role: "user",
+          content: userMessage,
+        },
       ],
     });
 
