@@ -16,10 +16,16 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || "{}");
     const userMessage = body.message || "Hello";
 
-    // ✅ Updated to a current supported model
     const response = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: userMessage }],
+      model: "llama-3.3-70b-versatile", // ✅ current supported model
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful Bible study assistant. Always answer with scripture references and clear explanations.",
+        },
+        { role: "user", content: userMessage },
+      ],
     });
 
     const answer = response.choices?.[0]?.message?.content || "No answer received";
