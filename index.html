@@ -47,9 +47,61 @@
   <button id="send-btn">Send</button>
 
   <script>
-    // Change this to your username
+    // Customize these names
     const USERNAME = "Nana";
     const ASSISTANT_NAME = "The Shepherd";
 
     async function sendMessage() {
-      const userInput = document.getElement
+      const userInput = document.getElementById("chat-input").value;
+      if (!userInput.trim()) return;
+
+      // Show user message
+      addMessageToChat("user", userInput);
+
+      try {
+        const res = await fetch("/.netlify/functions/bible-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userInput }),
+        });
+
+        const data = await res.json();
+        const reply = data.history && data.history[0] ? data.history[0] : "No response received.";
+        addMessageToChat("assistant", reply);
+      } catch (err) {
+        console.error(err);
+        addMessageToChat("assistant", "Error: Unable to fetch response.");
+      }
+
+      document.getElementById("chat-input").value = "";
+    }
+
+    function addMessageToChat(role, text) {
+      const chatWindow = document.getElementById("chat-window");
+      const messageDiv = document.createElement("div");
+
+      if (role === "user") {
+        messageDiv.textContent = USERNAME + ": " + text;
+        messageDiv.className = "user";
+      } else if (role === "assistant") {
+        messageDiv.textContent = ASSISTANT_NAME + ": " + text;
+        messageDiv.className = "assistant";
+      } else {
+        // For group chats, pass in the participant's name as role
+        messageDiv.textContent = role + ": " + text;
+        messageDiv.className = "group";
+      }
+
+      chatWindow.appendChild(messageDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("chat-input").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
