@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Bubble Chat</title>
+<title>The Shepherd</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -36,7 +36,7 @@
 </style>
 </head>
 <body>
-<h1>Bubble Chat</h1>
+<h1>The Shepherd</h1>
 <div id="chat-window"></div>
 <input id="chat-input" type="text" placeholder="Type your question..." />
 <button id="send-btn">Send</button>
@@ -50,7 +50,7 @@ async function sendMessage() {
   addMessageToChat("user", userInput);
 
   try {
-    const res = await fetch("/.netlify/functions/bubble-chat", {
+    const res = await fetch("/.netlify/functions/bible-chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: userInput }),
