@@ -23,6 +23,9 @@ function speak(text) {
   }
 }
 
+const userId = "default-user";
+const groupId = "default-group";
+
 async function sendToBackend(question) {
   try {
     addMessage(question, "user");
