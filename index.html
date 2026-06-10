@@ -89,7 +89,7 @@
       addMessageToChat("user", userInput);
 
       try {
-        const res = await fetch("/.netlify/functions/bible-chat", {
+        const res = await fetch("/.netlify/functions/bible-chat-v2", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: userInput }),
@@ -113,7 +113,7 @@
     ----------------------------*/
     async function loadHistory() {
       try {
-        const res = await fetch("/.netlify/functions/bible-chat", { method: "GET" });
+        const res = await fetch("/.netlify/functions/bible-chat-v2", { method: "GET" });
         const data = await res.json();
 
         document.getElementById("chat-window").innerHTML = "";
