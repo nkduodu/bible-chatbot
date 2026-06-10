@@ -3,59 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <title>The Shepherd</title>
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+
+    /* Chat container */
+    #chat-container {
+      display: none;
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      width: 350px;
+      height: 500px;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      z-index: 999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
     #chat-window {
       border: 1px solid #ccc;
       padding: 10px;
-      height: 300px;
+      height: 350px;
       overflow-y: auto;
-      margin-bottom: 10px;
       background: #f9f9f9;
+      border-radius: 5px;
     }
+
     .user { text-align: right; color: blue; margin: 5px; }
     .assistant { text-align: left; color: green; margin: 5px; }
     .group { text-align: left; color: purple; margin: 5px; }
+
     #chat-input { width: 70%; padding: 8px; }
     #send-btn, #clear-btn { padding: 8px 12px; margin-left: 5px; }
 
-    /* Floating widget */
+    /* Draggable floating widget */
     #floating-widget {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      width: 60px;
-      height: 60px;
-      cursor: pointer;
+      width: 70px;
+      height: 70px;
+      cursor: grab;
       z-index: 1000;
-    }
-    #chat-container {
-      display: none;
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 350px;
-      height: 450px;
-      border: 1px solid #ccc;
-      background: #fff;
-      z-index: 999;
-      padding: 10px;
     }
   </style>
 </head>
+
 <body>
-  <!-- Floating SVG Bible widget -->
+
+  <!-- Draggable Floating Bible Icon -->
   <div id="floating-widget">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-      <rect x="10" y="10" width="44" height="44" fill="#8B4513" stroke="#000"/>
-      <line x1="32" y1="10" x2="32" y2="54" stroke="#fff" stroke-width="2"/>
+    <svg width="70" height="70" viewBox="0 0 64 64">
+      <rect x="8" y="8" width="48" height="48" rx="6" fill="#5A2D0C" stroke="#000" stroke-width="2"/>
+      <rect x="14" y="14" width="36" height="36" fill="#8B4513" stroke="#000" stroke-width="1"/>
+      <line x1="32" y1="14" x2="32" y2="50" stroke="#fff" stroke-width="2"/>
+      <text x="26" y="38" font-size="14" fill="white" font-family="Georgia">✝</text>
     </svg>
   </div>
 
-  <!-- Chat container -->
+  <!-- Chat Box -->
   <div id="chat-container">
-    <h1>The Shepherd</h1>
+    <h2>The Shepherd</h2>
+
     <div id="chat-window"></div>
+
     <input id="chat-input" type="text" placeholder="Type your question..." />
     <button id="send-btn">Send</button>
     <button id="clear-btn">Clear Chat</button>
@@ -65,6 +79,9 @@
     const USERNAME = "Nana";
     const ASSISTANT_NAME = "The Shepherd";
 
+    /* ---------------------------
+       SEND MESSAGE
+    ----------------------------*/
     async function sendMessage() {
       const userInput = document.getElementById("chat-input").value;
       if (!userInput.trim()) return;
@@ -77,9 +94,12 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: userInput }),
         });
+
         const data = await res.json();
-        const reply = data.history && data.history.slice(-1)[0] ? data.history.slice(-1)[0].text : "No response.";
-        addMessageToChat("assistant", reply);
+
+        const last = data.history[data.history.length - 1];
+        addMessageToChat("assistant", last.text);
+
       } catch (err) {
         console.error(err);
         addMessageToChat("assistant", "Error: Unable to fetch response.");
@@ -88,53 +108,98 @@
       document.getElementById("chat-input").value = "";
     }
 
+    /* ---------------------------
+       LOAD HISTORY ON PAGE LOAD
+    ----------------------------*/
     async function loadHistory() {
       try {
         const res = await fetch("/.netlify/functions/bible-chat", { method: "GET" });
         const data = await res.json();
-        if (data.history) {
-          document.getElementById("chat-window").innerHTML = "";
-          data.history.forEach(msg => addMessageToChat(msg.role, msg.text));
-        }
+
+        document.getElementById("chat-window").innerHTML = "";
+
+        data.history.forEach(msg => addMessageToChat(msg.role, msg.text));
+
       } catch (err) {
         console.error("Failed to load history", err);
       }
     }
 
+    /* ---------------------------
+       ADD MESSAGE TO CHAT
+    ----------------------------*/
     function addMessageToChat(role, text) {
       const chatWindow = document.getElementById("chat-window");
-      const messageDiv = document.createElement("div");
+      const div = document.createElement("div");
+
       if (role === "user") {
-        messageDiv.textContent = USERNAME + ": " + text;
-        messageDiv.className = "user";
+        div.textContent = USERNAME + ": " + text;
+        div.className = "user";
       } else if (role === "assistant") {
-        messageDiv.textContent = ASSISTANT_NAME + ": " + text;
-        messageDiv.className = "assistant";
+        div.textContent = ASSISTANT_NAME + ": " + text;
+        div.className = "assistant";
       } else {
-        messageDiv.textContent = role + ": " + text;
-        messageDiv.className = "group";
+        div.textContent = role + ": " + text;
+        div.className = "group";
       }
-      chatWindow.appendChild(messageDiv);
+
+      chatWindow.appendChild(div);
       chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    // Toggle chat visibility
-    document.getElementById("floating-widget").addEventListener("click", () => {
-      const chat = document.getElementById("chat-container");
-      chat.style.display = chat.style.display === "none" ? "block" : "none";
-    });
-
-    document.getElementById("send-btn").addEventListener("click", sendMessage);
-    document.getElementById("chat-input").addEventListener("keypress", e => {
-      if (e.key === "Enter") sendMessage();
-    });
-
+    /* ---------------------------
+       CLEAR CHAT
+    ----------------------------*/
     document.getElementById("clear-btn").addEventListener("click", async () => {
       await fetch("/.netlify/functions/clear-chat", { method: "POST" });
       document.getElementById("chat-window").innerHTML = "";
     });
 
+    /* ---------------------------
+       DRAGGABLE FLOATING WIDGET
+    ----------------------------*/
+    const widget = document.getElementById("floating-widget");
+    let offsetX, offsetY, isDragging = false;
+
+    widget.addEventListener("mousedown", e => {
+      isDragging = true;
+      offsetX = e.clientX - widget.offsetLeft;
+      offsetY = e.clientY - widget.offsetTop;
+      widget.style.cursor = "grabbing";
+    });
+
+    document.addEventListener("mousemove", e => {
+      if (isDragging) {
+        widget.style.left = (e.clientX - offsetX) + "px";
+        widget.style.top = (e.clientY - offsetY) + "px";
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+      widget.style.cursor = "grab";
+    });
+
+    /* ---------------------------
+       TOGGLE CHAT VISIBILITY
+    ----------------------------*/
+    widget.addEventListener("click", () => {
+      if (!isDragging) {
+        const chat = document.getElementById("chat-container");
+        chat.style.display = chat.style.display === "none" ? "block" : "none";
+      }
+    });
+
+    /* ---------------------------
+       EVENT LISTENERS
+    ----------------------------*/
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("chat-input").addEventListener("keypress", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+
     window.onload = loadHistory;
   </script>
+
 </body>
 </html>
