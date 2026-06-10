@@ -1,20 +1,18 @@
-import Groq from "groq-sdk";
-import { getStore } from "@netlify/blobs";
+const Groq = require("groq-sdk");
+const { getStore } = require("@netlify/blobs");
 
 const client = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-export default async (req, res) => {
+exports.handler = async (event, context) => {
   const store = getStore("chat-history");
-
-  res.setHeader("Content-Type", "application/json");
 
   try {
     // -------------------------
     // GET → return full history
     // -------------------------
-    if (req.method === "GET") {
+    if (event.httpMethod === "GET") {
       const keys = await store.list();
       const history = [];
 
@@ -23,18 +21,24 @@ export default async (req, res) => {
         history.push(JSON.parse(item));
       }
 
-      return res.status(200).json({ history });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ history })
+      };
     }
 
     // -------------------------
     // POST → process message
     // -------------------------
-    if (req.method === "POST") {
-      const body = JSON.parse(req.body || "{}");
+    if (event.httpMethod === "POST") {
+      const body = JSON.parse(event.body || "{}");
       const message = body.message;
 
       if (!message) {
-        return res.status(400).json({ error: "No message provided." });
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "No message provided." })
+        };
       }
 
       // Save user message
@@ -72,13 +76,22 @@ export default async (req, res) => {
         history.push(JSON.parse(item));
       }
 
-      return res.status(200).json({ history });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ history })
+      };
     }
 
-    return res.status(405).json({ error: "Method not allowed." });
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method not allowed." })
+    };
 
   } catch (err) {
     console.error("bible-chat error:", err);
-    return res.status(500).json({ error: "Internal server error." });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Internal server error." })
+    };
   }
 };
