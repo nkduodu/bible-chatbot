@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <title>The Shepherd</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
     #chat-window {
       border: 1px solid #ccc;
       padding: 10px;
@@ -72,4 +69,72 @@
       const userInput = document.getElementById("chat-input").value;
       if (!userInput.trim()) return;
 
-      addMessage
+      addMessageToChat("user", userInput);
+
+      try {
+        const res = await fetch("/.netlify/functions/bible-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userInput }),
+        });
+        const data = await res.json();
+        const reply = data.history && data.history.slice(-1)[0] ? data.history.slice(-1)[0].text : "No response.";
+        addMessageToChat("assistant", reply);
+      } catch (err) {
+        console.error(err);
+        addMessageToChat("assistant", "Error: Unable to fetch response.");
+      }
+
+      document.getElementById("chat-input").value = "";
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch("/.netlify/functions/bible-chat", { method: "GET" });
+        const data = await res.json();
+        if (data.history) {
+          document.getElementById("chat-window").innerHTML = "";
+          data.history.forEach(msg => addMessageToChat(msg.role, msg.text));
+        }
+      } catch (err) {
+        console.error("Failed to load history", err);
+      }
+    }
+
+    function addMessageToChat(role, text) {
+      const chatWindow = document.getElementById("chat-window");
+      const messageDiv = document.createElement("div");
+      if (role === "user") {
+        messageDiv.textContent = USERNAME + ": " + text;
+        messageDiv.className = "user";
+      } else if (role === "assistant") {
+        messageDiv.textContent = ASSISTANT_NAME + ": " + text;
+        messageDiv.className = "assistant";
+      } else {
+        messageDiv.textContent = role + ": " + text;
+        messageDiv.className = "group";
+      }
+      chatWindow.appendChild(messageDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Toggle chat visibility
+    document.getElementById("floating-widget").addEventListener("click", () => {
+      const chat = document.getElementById("chat-container");
+      chat.style.display = chat.style.display === "none" ? "block" : "none";
+    });
+
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("chat-input").addEventListener("keypress", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    document.getElementById("clear-btn").addEventListener("click", async () => {
+      await fetch("/.netlify/functions/clear-chat", { method: "POST" });
+      document.getElementById("chat-window").innerHTML = "";
+    });
+
+    window.onload = loadHistory;
+  </script>
+</body>
+</html>
