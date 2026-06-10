@@ -1,82 +1,84 @@
-// netlify/functions/bible-chat.js
-const Groq = require("groq-sdk");
-
-exports.handler = async (event) => {
-  try {
-    if (!process.env.GROQ_API_KEY) {
-      return {
-        statusCode: 500,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ history: ["Error: Missing GROQ_API_KEY"] }),
-      };
-    }
-
-    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-    const body = JSON.parse(event.body || "{}");
-    const userMessage = body.message || "Hello";
-
-    const response = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile", // ✅ current supported model
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a Bible study assistant. When asked about a passage, always explain that passage directly. Quote from it when relevant, summarize its meaning, and avoid greetings or unrelated verses.",
-        },
-        {
-          role: "user",
-          content: userMessage,
-        },
-      ],
-    });
-
-    const answer = response.choices?.[0]?.message?.content || "No answer received";
-
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ history: [answer] }),
-    };
-  } catch (error) {
-    console.error("Groq error:", error);
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ history: ["Error: Groq not responding"] }),
-    };
-  }
-
+import Groq from "groq-sdk";
 import { getStore } from "@netlify/blobs";
 
+const client = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
+
 export default async (req, res) => {
-  const store = getStore("chat-history"); // create or connect to a blob store
-  const body = JSON.parse(req.body);
-  const message = body.message;
+  const store = getStore("chat-history");
 
-  // Save user message
-  await store.setItem(Date.now().toString(), JSON.stringify({
-    role: "user",
-    text: message
-  }));
+  res.setHeader("Content-Type", "application/json");
 
-  // Call Groq (your existing logic)
-  const reply = await getGroqResponse(message);
+  try {
+    // -------------------------
+    // GET → return full history
+    // -------------------------
+    if (req.method === "GET") {
+      const keys = await store.list();
+      const history = [];
 
-  // Save assistant reply
-  await store.setItem(Date.now().toString(), JSON.stringify({
-    role: "assistant",
-    text: reply
-  }));
+      for (const key of keys) {
+        const item = await store.get(key);
+        history.push(JSON.parse(item));
+      }
 
-  // Retrieve full history
-  const keys = await store.list();
-  const history = [];
-  for (const key of keys) {
-    const item = await store.get(key);
-    history.push(JSON.parse(item));
+      return res.status(200).json({ history });
+    }
+
+    // -------------------------
+    // POST → process message
+    // -------------------------
+    if (req.method === "POST") {
+      const body = JSON.parse(req.body || "{}");
+      const message = body.message;
+
+      if (!message) {
+        return res.status(400).json({ error: "No message provided." });
+      }
+
+      // Save user message
+      const userEntry = {
+        role: "user",
+        text: message,
+        timestamp: Date.now()
+      };
+      await store.setItem(`user-${Date.now()}`, JSON.stringify(userEntry));
+
+      // Call Groq
+      const completion = await client.chat.completions.create({
+        model: "llama3-70b-8192",
+        messages: [
+          { role: "system", content: "You are The Shepherd, a Bible teacher." },
+          { role: "user", content: message }
+        ]
+      });
+
+      const replyText = completion.choices[0].message.content;
+
+      // Save assistant reply
+      const assistantEntry = {
+        role: "assistant",
+        text: replyText,
+        timestamp: Date.now()
+      };
+      await store.setItem(`assistant-${Date.now()}`, JSON.stringify(assistantEntry));
+
+      // Return full history
+      const keys = await store.list();
+      const history = [];
+      for (const key of keys) {
+        const item = await store.get(key);
+        history.push(JSON.parse(item));
+      }
+
+      return res.status(200).json({ history });
+    }
+
+    return res.status(405).json({ error: "Method not allowed." });
+
+  } catch (err) {
+    console.error("bible-chat error:", err);
+    return res.status(500).json({ error: "Internal server error." });
   }
-
-  res.json({ history });
 };
-
