@@ -1,3 +1,5 @@
+// v2.0 — Stable Netlify Classic Function
+
 const Groq = require("groq-sdk");
 const { getStore } = require("@netlify/blobs");
 
