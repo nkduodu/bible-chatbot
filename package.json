@@ -1,0 +1,8 @@
+{
+  "name": "bible-chat",
+  "version": "1.0.0",
+  "dependencies": {
+    "@netlify/blobs": "^10.7.9",
+    "groq-sdk": "^1.2.1"
+  }
+}
