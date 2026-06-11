@@ -8,7 +8,10 @@ const client = new Groq({
 });
 
 exports.handler = async (event, context) => {
-  const store = getStore("chat-history");
+const store = getStore("chat-history", {
+  siteID: process.env.NETLIFY_SITE_ID,
+  token: process.env.NETLIFY_API_TOKEN
+});
 
   try {
     // -------------------------
