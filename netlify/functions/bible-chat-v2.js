@@ -1,28 +1,23 @@
-// bible-chat-v2.js — Stable Netlify Classic Function
-
-const Groq = require("groq-sdk");
 const { getStore } = require("@netlify/blobs");
-
-const client = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
+const fetch = require("node-fetch");
 
 exports.handler = async (event, context) => {
-const store = getStore("chat-history", {
-  siteID: process.env.NETLIFY_SITE_ID,
-  token: process.env.NETLIFY_API_TOKEN
-});
+  // Initialize Blobs store (manual mode)
+  const store = getStore("chat-history", {
+    siteID: process.env.NETLIFY_SITE_ID,
+    token: process.env.NETLIFY_API_TOKEN
+  });
 
   try {
-    // -------------------------
-    // GET → return full history
-    // -------------------------
+    // ------------------------
+    // GET -> return full history
+    // ------------------------
     if (event.httpMethod === "GET") {
-      const keys = await store.list();
+      const { blobs } = await store.list();   // FIXED: new API returns { blobs: [...] }
       const history = [];
 
-      for (const key of keys) {
-        const item = await store.get(key);
+      for (const blob of blobs) {
+        const item = await store.get(blob.key);
         history.push(JSON.parse(item));
       }
 
@@ -32,9 +27,9 @@ const store = getStore("chat-history", {
       };
     }
 
-    // -------------------------
-    // POST → process message
-    // -------------------------
+    // ------------------------
+    // POST -> process message
+    // ------------------------
     if (event.httpMethod === "POST") {
       const body = JSON.parse(event.body || "{}");
       const message = body.message;
@@ -49,51 +44,68 @@ const store = getStore("chat-history", {
       // Save user message
       const userEntry = {
         role: "user",
-        text: message,
+        content: message,
         timestamp: Date.now()
       };
-      await store.setItem(`user-${Date.now()}`, JSON.stringify(userEntry));
 
-      // Call Groq
-      const completion = await client.chat.completions.create({
-        model: "llama3-70b-8192",
-        messages: [
-          { role: "system", content: "You are The Shepherd, a Bible teacher." },
-          { role: "user", content: message }
-        ]
+      await store.set(`user-${Date.now()}`, JSON.stringify(userEntry));
+
+      // ------------------------
+      // CALL GROQ API
+      // ------------------------
+      const groqKey = process.env.GROQ_API_KEY;
+
+      const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${groqKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama3-8b-8192",
+          messages: [
+            { role: "system", content: "You are MyShepherd, a Bible-based assistant." },
+            { role: "user", content: message }
+          ]
+        })
       });
 
-      const replyText = completion.choices[0].message.content;
+      const groqData = await groqResponse.json();
 
-      // Save assistant reply
-      const assistantEntry = {
+      if (!groqData.choices || !groqData.choices[0]) {
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: "GROQ response invalid." })
+        };
+      }
+
+      const aiReply = groqData.choices[0].message.content;
+
+      // Save AI reply
+      const aiEntry = {
         role: "assistant",
-        text: replyText,
+        content: aiReply,
         timestamp: Date.now()
       };
-      await store.setItem(`assistant-${Date.now()}`, JSON.stringify(assistantEntry));
 
-      // Return full history
-      const keys = await store.list();
-      const history = [];
-      for (const key of keys) {
-        const item = await store.get(key);
-        history.push(JSON.parse(item));
-      }
+      await store.set(`assistant-${Date.now()}`, JSON.stringify(aiEntry));
 
       return {
         statusCode: 200,
-        body: JSON.stringify({ history })
+        body: JSON.stringify({ reply: aiReply })
       };
     }
 
+    // ------------------------
+    // Unsupported method
+    // ------------------------
     return {
       statusCode: 405,
       body: JSON.stringify({ error: "Method not allowed." })
     };
 
   } catch (err) {
-    console.error("bible-chat-v2 error:", err);
+    console.error("Function error:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Internal server error." })
